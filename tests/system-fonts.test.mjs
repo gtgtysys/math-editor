@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
+import {scanFonts,fontName,readInstalledFont} from '../server-fonts.mjs';import {testFont} from './test-font.mjs';
+test('font catalog exposes stable IDs and labels without accepting arbitrary paths',async()=>{
+  const dir=await mkdtemp(path.join(os.tmpdir(),'ceol-font-test-'));
+  try{const bytes=Buffer.from(testFont('test-font-does-not-exist').toArrayBuffer());await writeFile(path.join(dir,'sample.ttf'),bytes);await writeFile(path.join(dir,'broken.otf'),'not a font');await writeFile(path.join(dir,'private.txt'),'not a font');const catalog=await scanFonts([dir]);assert.equal(catalog.size,1);const entry=[...catalog.values()][0];assert.match(entry.id,/^system:[a-f0-9]{24}$/);assert.match(entry.label,/Ceol Test Geometry/);assert.equal(fontName(bytes,'fallback'),entry.label);assert.equal((await scanFonts([dir])).keys().next().value,entry.id);await assert.rejects(readInstalledFont('../../private.txt'));}finally{assert.equal(path.dirname(path.resolve(dir)),path.resolve(os.tmpdir()));assert.ok(path.basename(dir).startsWith('ceol-font-test-'));await rm(dir,{recursive:true,force:true});}
+});

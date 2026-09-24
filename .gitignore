@@ -1,0 +1,20 @@
+node_modules/
+.env
+.sites-runtime/
+test-results/
+# Local credentials, hosting registration and user-provided fonts are not published.
+.env.*
+!.env.example
+.openai/
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.ceol.json
+!tests/roundtrip.ceol.json
+.publish/
+release/
+*.TTC
+*.ttc
+*.OTF
+*.TTF
