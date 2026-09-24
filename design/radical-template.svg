@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="220"
+   height="150"
+   viewBox="-10 -110 220 150"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="radical-template.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.85"
+     inkscape:cx="64.736842"
+     inkscape:cy="62.982456"
+     inkscape:window-width="1920"
+     inkscape:window-height="1057"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="radical" />
+  <title
+     id="title1">根号の編集用テンプレート — 1em = 100 units</title>
+  <desc
+     id="desc1">黒い根号と上線は独立したパスです。Inkscapeのノードツールで編集し、このSVGのまま保存してください。文字やフォントは含みません。根号の上線との接続点は (54,-82)。</desc>
+  <g
+     id="radical"
+     inkscape:groupmode="layer"
+     inkscape:label="根号（編集対象）"
+     fill="none"
+     stroke="#000000"
+     stroke-width="4"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+    <path
+       id="radical-hook"
+       d="M 14.929825,-16.596491 18,-20 33.54386,-0.35087719 54,-82"
+       sodipodi:nodetypes="cccc" />
+    <path
+       id="radical-overbar"
+       d="M54 -82 H190" />
+  </g>
+  <g
+     id="guides"
+     inkscape:groupmode="layer"
+     inkscape:label="ガイド（初期状態は非表示）"
+     style="display:none"
+     fill="none"
+     stroke="#32a0dc"
+     stroke-width="0.5"
+     stroke-dasharray="2 2">
+    <path
+       d="M-10 0 H210 M-10 -82 H210 M54 -110 V40 M58 -110 V40"
+       id="path1" />
+  </g>
+</svg>
