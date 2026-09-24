@@ -131,7 +131,12 @@ export function layout(tree,size,fontFor,edits={},layoutVersion=2){
     }
     if(n.type==='sqrt'){
       const b=lay(n.body,s,style),idx=n.index?lay(n.index,s*.5,3):box(),start=Math.max(s*.58,idx.w+s*.15),w=start+b.w+s*.1,top=-b.a-s*.12,bottom=b.d;
-      const path=`M ${start-s*.55} ${-s*.08} L ${start-s*.4} ${-s*.2} L ${start-s*.22} ${bottom} L ${start-s*.04} ${top} L ${w} ${top}`;
+      // User-edited radical-template.svg (100 units/em). Keep the small hook
+      // at its designed size; extend only the ascending stem for tall bodies.
+      const unit=s/100,origin=start-s*.58;
+      const hookScale=Math.min(1,(bottom-top)/(81.64912281*unit));
+      const hookY=y=>bottom+(y+.35087719)*unit*hookScale;
+      const path=`M ${origin+14.929825*unit} ${hookY(-16.596491)} L ${origin+18*unit} ${hookY(-20)} L ${origin+33.54386*unit} ${bottom} L ${origin+54*unit} ${top} L ${w} ${top}`;
       return box(w,Math.max(-top,idx.a+s*.35),b.d,[...move(b,start,0),...move(idx,0,-s*.35),{type:'stroke',id:n.id,x:0,y:0,path,strokeWidth:Math.max(1,s*.04),w,a:-top,d:bottom}]);
     }
     if(n.type==='accent'){

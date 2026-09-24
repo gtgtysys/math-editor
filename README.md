@@ -1,8 +1,16 @@
 # Ceol Formula Studio
 
-PowerPoint向けの、Windows PC上で動かす数式エディタです。フォントファイルは同梱しません。PCにインストールされたTTF／OTFを一覧から選べます。Ceol Italicがあれば初期フォントに使い、なければTimes New Romanなどで起動します。数式記号はすべてEuclid Symbol（通常版がなければBold）を優先します。未収録の記号だけEuclidなどで補います。Euclid系がない場合はTimes New Romanなどで代用し、文字ごとの指定は常に優先します。
+PowerPoint向けの、ブラウザで使う数式エディタです。フォントファイルは同梱しません。PCにインストールされたTTF／OTFを一覧から選べます。Ceol Italicがあれば初期フォントに使い、なければTimes New Romanなどで起動します。数式記号はすべてEuclid Symbol（通常版がなければBold）を優先します。未収録の記号だけEuclidなどで補います。Euclid系がない場合はTimes New Romanなどで代用し、文字ごとの指定は常に優先します。
 
-## 起動
+## ブラウザで使う（推奨）
+
+[エディタを開く](https://gtgtysys.github.io/math-editor/)。ダウンロード・Node.js・ローカルサーバーの起動は不要です。
+
+初回は「PCのフォントを使う」で利用を許可するか、「フォントを追加」でTTF／OTFを選択します。PCフォントへのアクセスは対応するデスクトップChromiumブラウザで利用できます。ファイルから追加したフォントはこのブラウザのIndexedDBに保存されます。サイトデータを削除すると再追加が必要です。フォントはアップロードしません。
+
+画像コピーはPNGが初期設定です。ベクター画像はSVG保存後にPowerPointへ挿入できます。ブラウザ版ではPPT経由のクリップボードに編集情報が残る保証はありません。再編集にはアプリで保存したSVG・PNG・JSONを使ってください。AIキーはタブ内だけで保持します。
+
+## Windowsローカル版（高度なPPTクリップボード連携用）
 
 1. [リポジトリのCode → Download ZIP](https://github.com/gtgtysys/math-editor/archive/refs/heads/main.zip) からダウンロードし、ZIPを「すべて展開」します。
 2. [Node.js](https://nodejs.org/)のLTS版をインストールします（初回のみ）。
@@ -11,7 +19,7 @@ PowerPoint向けの、Windows PC上で動かす数式エディタです。フォ
 
 通常の利用にGit、npm install、APIキーは不要です。AIによる画像認識・自然言語入力を使うときだけ、ご自身のAPIキーを設定します。ダウンロード版の必要環境はWindows 10/11、Node.js 22以上、Windows PowerShellです。
 
-開発環境を作り直す場合のみ `npm install` と `npm run build` が必要です。WindowsのローカルサーバーがPCフォントの読み込みとSVG／EMFクリップボードを担当します。`dist` だけの静的配信ではこれらの機能は使えません。Times New Romanは配布物にコピーしません。
+開発環境を作り直す場合のみ `npm install` と `npm run build` が必要です。WindowsのローカルサーバーがPCフォントの読み込みとSVG／EMFクリップボードを担当します。静的配信ではブラウザのフォント機能と画像クリップボードを使います。Times New Romanは配布物にコピーしません。
 
 ## 操作
 
@@ -74,3 +82,7 @@ PowerPointはSVGのmetadataを除去するため、描画面積ゼロ・線な�
 `npm ci` → `npm run build` → `npm test` で検証できます。テストはCeol等が手元になければ独自の幾何学字形を生成して実行するため、フォントファイルなしで動作します。`dist/vendor`にはブラウザ用ライブラリを含めているので、ダウンロードしたアプリはnpmによる準備なしで起動します。既存の `math-editor/` フォルダーは以前のReactテンプレートです。今回のWindows版はリポジトリ直下から起動してください。
 
 根号を自分で調整する場合は [編集用SVG](dist/design/radical-template.svg) をInkscapeで開いてください。[編集手順](dist/design/README.md) にパスと寸法の説明があります。
+
+## ローカルサーバーの終了条件
+
+ブラウザのタブを閉じても終了しません。起動コンソールのCtrl+C、コンソールを閉じる、サーバープロセスの終了、Windowsのサインアウト／再起動／シャットダウンで停止します。アイドル時間による自動停止はありません。スリープは終了ではなく一時停止です。公開ブラウザ版の利用にローカルサーバーは不要です。

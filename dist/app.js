@@ -1,3 +1,4 @@
+import {fontId,savedFonts,saveFont} from './browser-fonts.js';
 import {mapNamedSymbols} from './font-symbols.js';
 import {vectorDataPath,projectFromVectorPath} from './vector-data.js';
 import {parse,layout,validateProject} from './engine.js';
@@ -6,7 +7,7 @@ import {interpret} from './providers.js';
 import {remapEdits,OFFICE_COLORS,NEUTRALS,isMathSymbol,insertAfterSelection,transformSelection,encodeProject,decodeProject} from './editing.js';
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
 const fonts=new Map(),fontCatalog=new Map(),fontLoads=new Map();
-async function ensureFont(id){if(fonts.has(id))return;if(!fontCatalog.has(id))throw Error(`フォント「${id}」をPCにインストールするか、TTF／OTFを追加してください。`);if(!fontLoads.has(id))fontLoads.set(id,(async()=>{const r=await fetch('/api/font/'+encodeURIComponent(id),{headers:{'X-Ceol-Request':'1'}});if(!r.ok)throw Error('フォントを読み込めませんでした。');fonts.set(id,mapNamedSymbols(opentype.parse(await r.arrayBuffer())));})().finally(()=>fontLoads.delete(id)));return fontLoads.get(id);}
+async function ensureFont(id){if(fonts.has(id))return;if(!fontCatalog.has(id))throw Error(`フォント「${id}」をPCにインストールするか、TTF／OTFを追加してください。`);if(!fontLoads.has(id))fontLoads.set(id,(async()=>{const entry=fontCatalog.get(id);let bytes;if(entry.bytes)bytes=entry.bytes;else if(entry.local)bytes=await(await entry.local.blob()).arrayBuffer();else{const r=await fetch('/api/font/'+encodeURIComponent(id),{headers:{'X-Ceol-Request':'1'}});if(!r.ok)throw Error('フォントを読み込めませんでした。');bytes=await r.arrayBuffer();}fonts.set(id,mapNamedSymbols(opentype.parse(bytes)));})().finally(()=>fontLoads.delete(id)));return fontLoads.get(id);}
 function fontOptions(){return [...fontCatalog.values(),...[...fonts].filter(([id])=>!fontCatalog.has(id)).map(([id,font])=>({id,label:font.names.fullName?.en||id}))];}
 let state={app:'ceol-formula-studio',version:1,layoutVersion:2,symbolFont:'euclid',exportScale:1/3,bold:false,source:$('source').value,font:'ceol-italic',fontSize:28,color:'#000000',transparent:true,background:'#ffffff',padding:12,edits:{}};
 let editAnchor=null,inputRange=null;
@@ -114,7 +115,7 @@ action('copy',async()=>{
   if(!navigator.clipboard?.write||typeof ClipboardItem==='undefined'){download(await pngBlob(),'formula.png');toast('コピーが使えないためPNGを保存しました。');return;}
   const data={'image/png':pngBlob()};
   if(vector&&ClipboardItem.supports?.('image/svg+xml'))data['image/svg+xml']=new Blob([svg],{type:'image/svg+xml'});
-  await navigator.clipboard.write([new ClipboardItem(data)]);toast(vector?'PNGと編集情報をコピーしました。PPTのベクター貼り付けにはWindowsローカル版を使ってください。':'PNGと編集情報をコピーしました。');
+  await navigator.clipboard.write([new ClipboardItem(data)]);toast(data['image/svg+xml']?'SVGとPNGをコピーしました。':'PNGをコピーしました。ベクター画像は「SVG 保存」を使用してください。');
 });
 action('saveProject',()=>{if(invalid)throw Error('数式を確認してから保存してください。');download(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),'formula.ceol.json');toast('編集データを保存しました。');});
 async function importFile(file){
@@ -135,7 +136,22 @@ async function restoreProject(project){const valid=validateProject(project);awai
 async function pasteNative(){const result=await nativeRequest('paste');if(result.project){await restoreProject(JSON.parse(result.project));return;}if(result.svg){const doc=new DOMParser().parseFromString(result.svg,'image/svg+xml');const meta=doc.querySelector('metadata#ceol-formula');let project=meta?JSON.parse(meta.textContent):null;if(!project)for(const path of doc.querySelectorAll('path[d]')){project=projectFromVectorPath(path.getAttribute('d'));if(project)break;}if(project){await restoreProject(project);return;}}if(result.image){const blob=await (await fetch(result.image)).blob();await importFile(new File([blob],'pasted.png',{type:'image/png'}));return;}throw Error('貼り付けできる画像がありません。');}
 action('pasteImage',async()=>{if(nativeClipboard)return pasteNative();if(!navigator.clipboard?.read)throw Error('Ctrl+Vで貼り付けるか、PPTからPNGを保存して読み込んでください。');const items=await navigator.clipboard.read();for(const item of items){if(item.types.includes('text/plain')){const p=decodeProject(await(await item.getType('text/plain')).text());if(p){await restoreProject(p);return;}}for(const type of item.types.filter(t=>t.startsWith('image/'))){const blob=await item.getType(type);await importFile(new File([blob],type==='image/svg+xml'?'pasted.svg':'pasted.png',{type}));return;}}throw Error('画像がありません。PPTで画像や図形を選択してコピーしてください。');});
 document.addEventListener('paste',async e=>{const text=e.clipboardData.getData('text/plain'),file=Array.from(e.clipboardData.items).find(i=>i.type.startsWith('image/'))?.getAsFile();if(text.startsWith('CEOL_FORMULA_V1:')){e.preventDefault();try{await restoreProject(decodeProject(text));}catch(e){toast(e.message);}return;}if(file){e.preventDefault();try{if(nativeClipboard)await pasteNative();else await importFile(file);}catch(e){toast(e.message);}return;}if(!['INPUT','TEXTAREA'].includes(e.target.tagName)&&nativeClipboard){e.preventDefault();try{await pasteNative();}catch(e){toast(e.message);}}});
-$('addFont').onclick=()=>$('fontInput').click();$('fontInput').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;if(file.size>25e6)throw Error('25MB以下のフォントを選んでください。');const font=mapNamedSymbols(opentype.parse(await file.arrayBuffer())),id='custom:'+file.name;fonts.set(id,font);if(!Array.from($('font').options).some(o=>o.value===id)){const option=new Option(font.names.fullName?.en||file.name,id);$('font').add(option);}checkpoint();state.font=id;syncControls();render();toast('フォントを追加しました。');}catch(e){toast('フォントを読み込めませんでした。'+e.message);}finally{$('fontInput').value='';}};
+$('addFont').onclick=()=>$('fontInput').click();
+$('fontInput').onchange=async e=>{try{
+  let last;
+  for(const file of e.target.files){
+    if(file.size>25e6)throw Error('25MB以下のフォントを選んでください。');
+    const bytes=await file.arrayBuffer(),font=mapNamedSymbols(opentype.parse(bytes)),label=font.names.fullName?.en||file.name,id=await fontId(label);
+    fonts.set(id,font);fontCatalog.set(id,{id,label,bytes});last=id;
+    try{await saveFont({id,label,bytes});}catch{toast('フォントは今回のみ使用できます。ブラウザ内への保存ができませんでした。');}
+  }
+  if(last){const first=!rendered;await prepareFonts(first);if(!first&&!['euclid','euclid-symbol','euclid-symbol-bold','fallback'].includes(last)){checkpoint();state.font=last;syncControls();render();}}
+}catch(e){toast('フォントを読み込めませんでした。'+e.message);}finally{$('fontInput').value='';}};
+$('pcFonts').onclick=async()=>{try{
+  const entries=await window.queryLocalFonts();
+  for(const local of entries){const id=await fontId(local.fullName);fontCatalog.set(id,{id,label:local.fullName,local});}
+  await prepareFonts(!rendered);toast('PCのフォントを選べるようになりました。');
+}catch(e){toast('PCフォントを読み込めませんでした。許可するか、TTF／OTFを追加してください。');}};
 $('helpBtn').onclick=()=>$('help').showModal();$('settingsBtn').onclick=()=>$('settings').showModal();
 // Keys are kept only in memory; provider endpoints are fixed, not imported from files.
 $('applySettings').onclick=()=>{const model=$('apiModel').value.trim();if(!/^[a-zA-Z0-9_.:/-]{1,120}$/.test(model)){toast('利用するモデル名を入力してください。');return;}settings={provider:$('apiProvider').value,model,key:$('apiKey').value.trim()};$('apiKey').value='';$('settings').close();toast('AI接続を設定しました。キーはこのタブを閉じると消去されます。');};
@@ -143,19 +159,38 @@ $('apiProvider').onchange=()=>{$('apiModel').value='';$('apiModel').placeholder=
 action('generate',async()=>{if(!settings.key||!settings.model){$('settings').showModal();toast('APIキーとモデル名を設定してください。');return;}if(!$('prompt').value.trim()&&!attachedImage)throw Error('数式の説明か画像を入力してください。');const button=$('generate'),before=state.source;button.disabled=true;button.textContent='読み取り中…';try{const source=await interpret(settings,$('prompt').value,attachedImage);parse(source);if(state.source!==before)throw Error('処理中に数式が編集されたため、反映を中止しました。もう一度実行してください。');updateSource(source);if(invalid)throw Error('AIの出力に未対応の文字が含まれています。数式を修正してください。');toast('数式を生成しました。内容を確認してからお使いください。');}finally{button.disabled=false;button.textContent='✧ 数式に変換';}});
 for(const id of ['color','charColor','background']){for(const [color,label]of [...NEUTRALS,...OFFICE_COLORS])$(id).add(new Option(label,color));}
 const palette=document.createElement('div');palette.className='palette';palette.dataset.palette='color';palette.setAttribute('aria-label','PowerPoint標準色');for(const [color,label]of [...NEUTRALS,...OFFICE_COLORS]){const button=document.createElement('button');button.type='button';button.style.background=color;button.title=label;button.setAttribute('aria-label',`全体を${label}にする`);button.dataset.color=color;button.onclick=()=>{$('color').value=color;$('color').dispatchEvent(new Event('change'));};palette.append(button);}$('color').closest('.two-columns').after(palette);
+async function prepareFonts(selectInitial=false){
+  $('font').replaceChildren(...fontOptions().map(({id,label})=>new Option(label,id)));
+  if(selectInitial){
+    let initial;
+    for(const id of [...new Set(['ceol-italic','times','ceol',...fontCatalog.keys()])]){
+      if(!fontCatalog.has(id))continue;try{await ensureFont(id);initial=id;break;}catch{}
+    }
+    if(!initial){$('fontSetup').hidden=false;invalid=true;for(const id of ['copy','png','svg'])$(id).disabled=true;return;}
+    state.font=initial;
+  }
+  for(const id of ['euclid','euclid-symbol','euclid-symbol-bold','times','fallback'])if(fontCatalog.has(id))try{await ensureFont(id);}catch{}
+  $('fontSetup').hidden=true;
+  $('fontHint').textContent=(fonts.has('euclid-symbol')||fonts.has('euclid-symbol-bold'))?'記号：Euclid Symbol系。個別指定を優先します。':'記号用にEuclid Symbolを追加できます。';
+  syncControls();render();
+}
 async function init(){
   try{
-    const capabilities=await(await fetch('/api/capabilities')).json();nativeClipboard=capabilities.nativeClipboard===true;
-    const response=await fetch('/api/fonts',{headers:{'X-Ceol-Request':'1'}});if(!response.ok)throw Error('ローカルサーバーを再起動してください。');
-    const data=await response.json();for(const entry of data.fonts)fontCatalog.set(entry.id,entry);
-    $('font').replaceChildren(...fontOptions().map(({id,label})=>new Option(label,id)));
-    const preferences=['ceol-italic','times','ceol',...fontCatalog.keys()];let initial;
-    for(const id of [...new Set(preferences)]){if(!fontCatalog.has(id))continue;try{await ensureFont(id);initial=id;break;}catch{}}
-    if(!initial)throw Error('利用できるTTF／OTFがありません。「フォントを追加」から読み込んでください。');
-    state.font=initial;
-    for(const id of ['euclid','euclid-symbol','euclid-symbol-bold','times','fallback'])if(fontCatalog.has(id))try{await ensureFont(id);}catch{}
-    const symbolHint=$('font').parentElement.querySelector('p');if(symbolHint)symbolHint.textContent=(fonts.has('euclid-symbol')||fonts.has('euclid-symbol-bold'))?'記号：Euclid Symbol系。個別指定を優先します。':fonts.has('times')?'Euclid未導入：記号はTimes New Romanで代用します。':'Euclid未導入：記号は選択フォントで代用します。';
-    syncControls();render();
+    const local=['127.0.0.1','localhost'].includes(location.hostname)&&location.port==='4173'&&!new URLSearchParams(location.search).has('web');
+    if(local){try{
+      const capabilities=await(await fetch('/api/capabilities')).json();nativeClipboard=capabilities.nativeClipboard===true;
+      const response=await fetch('/api/fonts',{headers:{'X-Ceol-Request':'1'}});if(response.ok){const data=await response.json();for(const entry of data.fonts)fontCatalog.set(entry.id,entry);}
+    }catch{}}
+    if(!nativeClipboard){
+      $('copyFormat').value='png';$('copyFormat').querySelector('[value="vector"]').textContent='SVG（対応ブラウザのみ）';
+      $('exportHint').textContent='PPT用ベクターは「SVG 保存」から挿入できます。PPT経由のコピーでは編集情報が失われる場合があるため、編集用PNG・SVG・JSONも保存してください。';
+      try{for(const entry of await savedFonts())fontCatalog.set(entry.id,entry);}catch{}
+      if(window.queryLocalFonts)try{if((await navigator.permissions.query({name:'local-fonts'})).state==='granted'){
+        for(const local of await window.queryLocalFonts()){const id=await fontId(local.fullName);fontCatalog.set(id,{id,label:local.fullName,local});}
+      }}catch{}
+    }
+    $('pcFonts').hidden=!window.queryLocalFonts||nativeClipboard;
+    await prepareFonts(true);
   }catch(e){$('parseError').textContent=e.message;for(const id of ['copy','png','svg'])$(id).disabled=true;}
 }
 await init();
