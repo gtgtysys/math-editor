@@ -5,6 +5,7 @@ test-results/
 # Local credentials, hosting registration and user-provided fonts are not published.
 .env.*
 !.env.example
+config/api-settings.json
 .openai/
 *.ttf
 *.otf

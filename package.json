@@ -3,15 +3,58 @@
   "version": "1.1.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.mjs",
   "scripts": {
     "start": "node server.mjs",
+    "desktop": "electron .",
     "test": "node --test tests/*.test.mjs",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "dist:windows": "npm run test && electron-builder --win portable"
   },
   "dependencies": {
     "opentype.js": "1.3.4"
   },
   "engines": {
     "node": ">=22"
+  },
+  "build": {
+    "appId": "jp.gtgtysys.ceol-formula-studio",
+    "productName": "Ceol Formula Studio",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/fonts/**/*",
+      "electron/**/*",
+      "server-desktop.mjs",
+      "server-config.mjs",
+      "server-fonts.mjs",
+      "package.json",
+      "build/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "scripts",
+        "to": "scripts",
+        "filter": [
+          "clipboard.ps1",
+          "ClipboardBridge.cs"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Ceol-Formula-Studio-${version}-portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.0.12"
   }
 }

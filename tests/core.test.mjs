@@ -18,6 +18,13 @@ test('scripts have actual ink metrics and a minimum vertical separation',()=>{
   const f=layout(parse('\\frac{a}{b}'),40,fontFor),rule=f.items.find(g=>g.type==='line'),eq=font.charToGlyph('=').getBoundingBox();
   assert.ok(Math.abs(rule.y+rule.h/2+(eq.y1+eq.y2)*20/font.unitsPerEm)<1e-8);
 });
+test('large operators use consistent visible sizes despite font glyph metrics',()=>{
+  const boxes=Object.fromEntries(['sum','prod','int'].map(name=>[name,layout(parse(`\\${name}`),40,fontFor)]));
+  const ink=name=>{const g=boxes[name].items[0];return g.a+g.d;};
+  assert.ok(Math.abs(ink('sum')-ink('prod'))<.01);
+  assert.ok(ink('sum')>40);
+  assert.ok(ink('int')>40);
+});
 test('saved legacy layouts keep their original geometry and new layouts record their version',async()=>{
   const legacy=await import('../dist/legacy-engine.js');const source='\\sin x\\,dx';
   assert.deepEqual(layout(parse(source,1),40,fontFor,{},1),legacy.layout(legacy.parse(source),40,fontFor));

@@ -95,7 +95,16 @@ export function layout(tree,size,fontFor,edits={},layoutVersion=2){
   function layBody(n,s,style=0){
     if(n.type==='char')return glyph(n,s);
     if(n.type==='large'){
-      const b=glyph(n,s*(style===0?1.45:1.15)),dy=(b.a-b.d)/2-axis(s);
+      const baseScale=style===0?1.45:1.15;
+      let b=glyph(n,s*baseScale);
+      // Euclid Symbol's summation outline is only 490 units high while its
+      // product is 852 units high. Normalize display operators by visible ink
+      // instead of trusting the font's inconsistent em-box dimensions.
+      if(['∑','∏'].includes(n.value)){
+        const target=s*(style===0?1.24:.98),ink=b.a+b.d;
+        if(ink>0)b=glyph(n,s*baseScale*target/ink);
+      }
+      const dy=(b.a-b.d)/2-axis(s);
       return box(b.w,b.a-dy,b.d+dy,move(b,0,dy));
     }
     if(n.type==='space')return box(n.factor*s);

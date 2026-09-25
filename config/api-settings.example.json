@@ -1,0 +1,5 @@
+{
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "key": "ここに共通APIキーを入力"
+}
