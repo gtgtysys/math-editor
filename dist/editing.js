@@ -1,6 +1,7 @@
 export const OFFICE_COLORS=[['#C00000','濃い赤'],['#FF0000','赤'],['#FFC000','オレンジ'],['#FFFF00','黄'],['#92D050','薄い緑'],['#00B050','緑'],['#00B0F0','水色'],['#0070C0','青'],['#002060','濃い青'],['#7030A0','紫']];
 export const NEUTRALS=[['#000000','黒'],['#FFFFFF','白'],['#404040','濃い灰色'],['#808080','灰色'],['#BFBFBF','薄い灰色']];
-export const isMathSymbol=c=>/^[+\-−=<>±∓×÷·*()[\]{}|,;:!∑∏∫∮√∞≤≥≠≈≡∈∉⊂∪∩→←⇒∂∇∀∃…⋯′]$/.test(c);
+export const isGreekLetter=c=>/^[\u0391-\u03D6]$/.test(c);
+export const isMathSymbol=c=>isGreekLetter(c)||/^[+\-−=<>±∓×÷·*()[\]{}|,;:!∑∏∫∮√∞≤≥≠≈≡∈∉⊂∪∩→←⇒∂∇∀∃…⋯′]$/.test(c);
 export function transformSelection(source,start,end,kind){
   const chosen=source.slice(start,end);let text,caret;
   if(kind==='sqrt')text=`\\sqrt{${chosen||'x'}}`;

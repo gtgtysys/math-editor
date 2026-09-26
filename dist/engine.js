@@ -82,18 +82,18 @@ export function layout(tree,size,fontFor,edits={},layoutVersion=2){
   function atomClass(n){if(n.atomClass)return n.atomClass;if(n.type==='scripts')return atomClass(n.base);if(n.type==='large')return 'op';if(n.type==='frac'||n.type==='matrix')return 'inner';if(n.type==='space')return null;if(n.type!=='char')return 'ord';const c=edits[n.id]?.text??n.value;if(/^[+−±∓×÷·*]$/.test(c))return 'bin';if(/^[=<>≤≥≠≈≡∈∉⊂→←⇒]$/.test(c))return 'rel';if(/^[([{]$/.test(c))return 'open';if(/^[)\]}]$/.test(c))return 'close';if(/^[,;:]$/.test(c))return 'punct';return 'ord';}
   const xHeight=s=>{const f=fontFor('x');return f.charToGlyph('x').getBoundingBox().y2*s/f.unitsPerEm;};
   const axis=s=>{const f=fontFor('=');const b=f.charToGlyph('=').getBoundingBox();return (b.y1+b.y2)*.5*s/f.unitsPerEm;};
-  function kern(left,right,s){if(!left||!right)return 0;const a=edits[left.id]?.text??left.value,b=edits[right.id]?.text??right.value;if(!a||!b)return 0;const f=fontFor(a.at(-1),edits[left.id]?.font);if(f!==fontFor(b[0],edits[right.id]?.font))return 0;return f.getKerningValue(f.charToGlyph(a.at(-1)),f.charToGlyph(b[0]))*s/f.unitsPerEm;}
-  function glyph(n,s,value=n.value){
+  function kern(left,right,s,fontRole){if(!left||!right)return 0;const a=edits[left.id]?.text??left.value,b=edits[right.id]?.text??right.value;if(!a||!b)return 0;const f=fontFor(a.at(-1),edits[left.id]?.font,fontRole);if(f!==fontFor(b[0],edits[right.id]?.font,fontRole))return 0;return f.getKerningValue(f.charToGlyph(a.at(-1)),f.charToGlyph(b[0]))*s/f.unitsPerEm;}
+  function glyph(n,s,value=n.value,fontRole){
     const edit=edits[n.id]||{},text=edit.text??value;
     let x=0,paths=[],a=0,d=0,inkLeft=0,inkRight=0;
-    for(const c of text){const font=fontFor(c,edit.font),g=font.charToGlyph(c),p=g.getPath(x,0,s),bb=p.getBoundingBox();paths.push(p.toPathData(4));a=Math.max(a,-bb.y1);d=Math.max(d,bb.y2);inkLeft=Math.min(inkLeft,bb.x1);inkRight=Math.max(inkRight,bb.x2);x+=(g.advanceWidth||font.unitsPerEm*.5)*s/font.unitsPerEm;}
+    for(const c of text){const font=fontFor(c,edit.font,fontRole),g=font.charToGlyph(c),p=g.getPath(x,0,s),bb=p.getBoundingBox();paths.push(p.toPathData(4));a=Math.max(a,-bb.y1);d=Math.max(d,bb.y2);inkLeft=Math.min(inkLeft,bb.x1);inkRight=Math.max(inkRight,bb.x2);x+=(g.advanceWidth||font.unitsPerEm*.5)*s/font.unitsPerEm;}
     const w=Math.max(x,s*.1);
     return box(w,a,d,[{type:'glyph',id:n.id,text,x:0,y:0,w,inkLeft,inkRight,a,d,path:paths.join(' '),color:edit.color,sourceStart:n.start,sourceEnd:n.end}]);
   }
   const line=(id,x,y,w,thickness)=>({type:'line',id,x,y,w,h:thickness});
-  function lay(n,s,style=0){const b=layBody(n,s,style);for(const g of b.items)if(g.id===n.id&&g.sourceStart===undefined){g.sourceStart=n.start;g.sourceEnd=n.end;}return b;}
-  function layBody(n,s,style=0){
-    if(n.type==='char')return glyph(n,s);
+  function lay(n,s,style=0,fontRole){const b=layBody(n,s,style,fontRole);for(const g of b.items)if(g.id===n.id&&g.sourceStart===undefined){g.sourceStart=n.start;g.sourceEnd=n.end;}return b;}
+  function layBody(n,s,style=0,fontRole){
+    if(n.type==='char')return glyph(n,s,n.value,fontRole);
     if(n.type==='large'){
       const baseScale=style===0?1.45:1.15;
       let b=glyph(n,s*baseScale);
@@ -113,9 +113,10 @@ export function layout(tree,size,fontFor,edits={},layoutVersion=2){
       // A sign at the beginning, after an operator, or before a closing delimiter is unary.
       visible.forEach((i,j)=>{if(classes[i]==='bin'&&(j===0||['bin','op','rel','open','punct'].includes(classes[visible[j-1]])||j===visible.length-1||['rel','close','punct'].includes(classes[visible[j+1]])))classes[i]='ord';});
       let out=box(),previous=null;
-      n.children.forEach((child,i)=>{const b=lay(child,s,style),type=classes[i];let gap=0;
+      const childFontRole=n.textMode?'upright':fontRole;
+      n.children.forEach((child,i)=>{const b=lay(child,s,style,childFontRole),type=classes[i];let gap=0;
         if(previous!==null&&type!==null&&!n.textMode){const prev=classes[previous];let mu=SPACING[prev]?.[type]||0;if(style>=2&&!(type==='op'&&['ord','op','close','inner'].includes(prev)||prev==='op'&&type==='ord'))mu=0;gap=mu*s/18;}
-        if(i>0&&child.type==='char'&&n.children[i-1].type==='char'&&(n.textMode||classes[i]==='ord'&&classes[i-1]==='ord'))gap+=kern(n.children[i-1],child,s);
+        if(i>0&&child.type==='char'&&n.children[i-1].type==='char'&&(n.textMode||classes[i]==='ord'&&classes[i-1]==='ord'))gap+=kern(n.children[i-1],child,s,childFontRole);
         out.items.push(...move(b,out.w+gap,0));out.w+=b.w+gap;out.a=Math.max(out.a,b.a);out.d=Math.max(out.d,b.d);if(type!==null)previous=i;
       });return out;
     }

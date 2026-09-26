@@ -51,8 +51,8 @@ textarea{resize:vertical;font-size:16px;line-height:1.65}
 .history{display:flex;align-items:center;gap:3px}
 .history button{border:0;font-size:19px;padding:4px 7px}
 #resetPositions{font-size:12px;color:#7b8d80}
-#stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:360px;overflow:auto;padding:60px 25px;background-color:#fcfdfc;background-image:linear-gradient(45deg,#eef1ee 25%,transparent 25%),linear-gradient(-45deg,#eef1ee 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eef1ee 75%),linear-gradient(-45deg,transparent 75%,#eef1ee 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
-.canvas-label{position:absolute;left:22px;top:17px;font-size:10px;letter-spacing:1.5px;color:#a2ada5}
+#stage{position:relative;display:flex;align-items:center;justify-content:center;min-height:360px;overflow:auto;padding:60px 25px;background:#000022}
+.canvas-label{position:absolute;left:22px;top:17px;font-size:10px;letter-spacing:1.5px;color:#8e9992}
 #canvas{overflow:visible;flex-shrink:0;touch-action:none;max-width:none}
 #canvas .glyph{cursor:grab}
 #canvas .glyph:active{cursor:grabbing}

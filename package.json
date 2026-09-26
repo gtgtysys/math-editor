@@ -1,6 +1,6 @@
 {
   "name": "ceol-formula-studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "main": "electron/main.mjs",
@@ -9,9 +9,10 @@
     "desktop": "electron .",
     "test": "node --test tests/*.test.mjs",
     "build": "node scripts/build.mjs",
-    "dist:windows": "npm run test && electron-builder --win portable"
+    "dist:windows": "npm run test && electron-builder --win nsis"
   },
   "dependencies": {
+    "electron-updater": "^6.6.2",
     "opentype.js": "1.3.4"
   },
   "engines": {
@@ -47,11 +48,24 @@
     ],
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ],
       "icon": "build/icon.ico",
-      "artifactName": "Ceol-Formula-Studio-${version}-portable.${ext}"
-    }
+      "artifactName": "Ceol-Formula-Studio-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "gtgtysys",
+        "repo": "math-editor"
+      }
+    ]
   },
   "devDependencies": {
     "electron": "^44.4.5",

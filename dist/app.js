@@ -9,7 +9,7 @@ const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
 const fonts=new Map(),fontCatalog=new Map(),fontLoads=new Map();
 async function ensureFont(id){if(fonts.has(id))return;if(!fontCatalog.has(id))throw Error(`フォント「${id}」をPCにインストールするか、TTF／OTFを追加してください。`);if(!fontLoads.has(id))fontLoads.set(id,(async()=>{const entry=fontCatalog.get(id);let bytes;if(entry.bytes)bytes=entry.bytes;else if(entry.local)bytes=await(await entry.local.blob()).arrayBuffer();else{const r=await fetch('/api/font/'+encodeURIComponent(id),{headers:{'X-Ceol-Request':'1'}});if(!r.ok)throw Error('フォントを読み込めませんでした。');bytes=await r.arrayBuffer();}fonts.set(id,mapNamedSymbols(opentype.parse(bytes)));})().finally(()=>fontLoads.delete(id)));return fontLoads.get(id);}
 function fontOptions(){return [...fontCatalog.values(),...[...fonts].filter(([id])=>!fontCatalog.has(id)).map(([id,font])=>({id,label:font.names.fullName?.en||id}))];}
-let state={app:'ceol-formula-studio',version:1,layoutVersion:2,symbolFont:'euclid',exportScale:1/3,bold:false,source:$('source').value,font:'ceol-italic',fontSize:28,color:'#000000',transparent:true,background:'#ffffff',padding:12,edits:{}};
+let state={app:'ceol-formula-studio',version:1,layoutVersion:2,symbolFont:'euclid',exportScale:1/3,bold:false,source:$('source').value,font:'ceol-italic',fontSize:28,color:'#FFFFFF',transparent:true,background:'#000022',padding:12,edits:{}};
 let editAnchor=null,inputRange=null;
 let rendered=null,selected=null,zoom=1,history=[],future=[],drag=null,attachedImage=null,settings={provider:'gemini',model:'',key:'',configured:false},invalid=false;
 const selection=new Set();let selectionAnchor=null,nativeClipboard=false;
@@ -21,9 +21,9 @@ function updateHistory(){$('undo').disabled=!history.length;$('redo').disabled=!
 function clearSelection(){selected=null;selection.clear();selectionAnchor=null;}
 function setState(next){checkpoint();state=clone(next);clearSelection();syncControls();render();}
 function setColor(id,color){const el=$(id);if(!Array.from(el.options).some(o=>o.value===color))el.add(new Option(color,color));el.value=color;el.style.borderLeftColor=color;document.querySelectorAll(`[data-palette="${id}"] button`).forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.color===color));b.disabled=el.disabled;});}
-function syncControls(){for(const key of ['source','font','fontSize','padding'])$(key).value=state[key];for(const key of ['color','background'])setColor(key,state[key]);$('bold').checked=state.bold||false;const scale=String(state.exportScale??1);if(!Array.from($('exportScale').options).some(o=>o.value===scale))$('exportScale').add(new Option(scale+'倍',scale));$('exportScale').value=scale;$('transparent').checked=state.transparent;$('paddingValue').textContent=state.padding+' px';$('backgroundLabel').hidden=state.transparent;}
-function fontForState(char,project=state,override){if(override){const font=fonts.get(override);if(font?.charToGlyphIndex(char))return font;const fallback=fonts.get(project.font)||fonts.get('fallback')||fonts.get('times')||fonts.values().next().value;if(fallback?.charToGlyphIndex(char))return fallback;throw Error(`「${char}」を表示できるフォントがありません。`);}if(isMathSymbol(char)){const ids=project.symbolFont==='euclid'?['euclid-symbol','euclid-symbol-bold','euclid','times']:project.symbolFont==='times'?['times']:[];for(const id of ids){const font=fonts.get(id);if(font?.charToGlyphIndex(char))return font;}}const preferred=fonts.get(project.font)||fonts.get('times')||fonts.values().next().value;if(preferred?.charToGlyphIndex(char))return preferred;const fallback=fonts.get('fallback');if(fallback?.charToGlyphIndex(char))return fallback;throw Error(`「${char}」を表示できるフォントがありません。対応フォントを追加してください。`);}
-function chooseFont(char,font){return fontForState(char,state,font);}
+function syncControls(){for(const key of ['source','font','fontSize','padding'])$(key).value=state[key];for(const key of ['color','background'])setColor(key,state[key]);$('bold').checked=state.bold||false;const scale=String(state.exportScale??1);if(!Array.from($('exportScale').options).some(o=>o.value===scale))$('exportScale').add(new Option(scale+'倍',scale));$('exportScale').value=scale;$('transparent').checked=state.transparent;$('paddingValue').textContent=state.padding+' px';}
+function fontForState(char,project=state,override,fontRole){if(override){const font=fonts.get(override);if(font?.charToGlyphIndex(char))return font;const fallback=fonts.get(project.font)||fonts.get('fallback')||fonts.get('times')||fonts.values().next().value;if(fallback?.charToGlyphIndex(char))return fallback;throw Error(`「${char}」を表示できるフォントがありません。`);}if(fontRole==='upright'){for(const id of ['ceol',project.font,'times']){const font=fonts.get(id);if(font?.charToGlyphIndex(char))return font;}}if(isMathSymbol(char)){const ids=project.symbolFont==='euclid'?['euclid-symbol','euclid-symbol-bold','euclid','times']:project.symbolFont==='times'?['times']:[];for(const id of ids){const font=fonts.get(id);if(font?.charToGlyphIndex(char))return font;}}const preferred=fonts.get(project.font)||fonts.get('times')||fonts.values().next().value;if(preferred?.charToGlyphIndex(char))return preferred;const fallback=fonts.get('fallback');if(fallback?.charToGlyphIndex(char))return fallback;throw Error(`「${char}」を表示できるフォントがありません。対応フォントを追加してください。`);}
+function chooseFont(char,font,fontRole){return fontForState(char,state,font,fontRole);}
 const fontLabel=document.createElement('label');fontLabel.className='selection-font';fontLabel.textContent='フォント';const charFont=document.createElement('select');charFont.id='charFont';charFont.setAttribute('aria-label','選択文字のフォント');fontLabel.append(charFont);document.querySelector('.selection-controls').append(fontLabel);
 function syncSelectionFont(){const glyphs=rendered?.items.filter(g=>selection.has(g.id)&&g.type==='glyph')||[];const values=new Set(glyphs.map(g=>state.edits[g.id]?.font||''));charFont.replaceChildren(new Option('自動（全体設定に従う）',''));for(const {id,label}of fontOptions())charFont.add(new Option(label,id));if(values.size>1){const mixed=new Option('複数のフォント','mixed');mixed.disabled=true;charFont.add(mixed);charFont.value='mixed';}else charFont.value=[...values][0]||'';charFont.disabled=!glyphs.length;}
 charFont.onchange=async()=>{const chosen=charFont.value,ids=[...selection];charFont.disabled=true;try{if(chosen)await ensureFont(chosen);checkpoint();for(const g of rendered?.items||[]){if(!ids.includes(g.id)||g.type!=='glyph')continue;const edit={...state.edits[g.id]};if(chosen)edit.font=chosen;else delete edit.font;state.edits[g.id]=edit;}render();}catch(e){toast(e.message);syncSelectionFont();}};
@@ -34,6 +34,7 @@ function bounds(){return {w:rendered.width+2*state.padding,h:rendered.height+2*s
 function itemMarkup(g){const color=g.color||state.color;const transform=`translate(${g.x} ${g.y})`;if(g.type==='glyph')return `<path d="${escape(g.path)}" fill="${color}" stroke="${color}" stroke-width="${boldWidth()}" stroke-linejoin="round" transform="${transform}"/>`;if(g.type==='line')return `<rect x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" fill="${color}"/>`;return `<path d="${escape(g.path)}" fill="none" stroke="${color}" stroke-width="${g.strokeWidth}" stroke-linecap="round" stroke-linejoin="round" transform="${transform}"/>`;}
 function drawCanvas(){
   const b=drag?.bounds||bounds(),svg=$('canvas');svg.replaceChildren();svg.setAttribute('viewBox',`0 0 ${b.w} ${b.h}`);svg.style.width=`${b.w*zoom}px`;svg.style.height=`${b.h*zoom}px`;
+  $('stage').style.backgroundColor=state.background;
   if(!state.transparent)svg.append(make('rect',{width:b.w,height:b.h,fill:state.background}));
   const root=make('g',{transform:`translate(${b.x} ${b.y})`});
   // Put large structural hit areas behind characters, so a radical doesn't hide its content.
@@ -154,6 +155,18 @@ $('pcFonts').onclick=async()=>{try{
   await prepareFonts(!rendered);toast('PCのフォントを選べるようになりました。');
 }catch(e){toast('PCフォントを読み込めませんでした。許可するか、TTF／OTFを追加してください。');}};
 $('helpBtn').onclick=()=>$('help').showModal();$('settingsBtn').onclick=()=>$('settings').showModal();
+if(window.ceolUpdater){
+  const updateButton=$('updateBtn');updateButton.hidden=false;
+  updateButton.onclick=async()=>{if(updateButton.dataset.ready==='1'){window.ceolUpdater.install();return;}updateButton.disabled=true;updateButton.textContent='確認中…';try{await window.ceolUpdater.check();}catch(e){toast(e.message||'更新を確認できませんでした。');updateButton.textContent='更新を確認';updateButton.disabled=false;}};
+  window.ceolUpdater.onStatus(status=>{
+    if(status.status==='checking'){updateButton.disabled=true;updateButton.textContent='確認中…';}
+    else if(status.status==='available'){updateButton.disabled=true;updateButton.textContent=`v${status.version}を取得中`;toast(`新しいバージョン v${status.version} をダウンロードします。`);}
+    else if(status.status==='downloading'){updateButton.disabled=true;updateButton.textContent=`更新 ${status.percent}%`;}
+    else if(status.status==='ready'){updateButton.disabled=false;updateButton.dataset.ready='1';updateButton.textContent='再起動して更新';toast(`v${status.version}をダウンロードしました。「再起動して更新」で適用できます。`);}
+    else if(status.status==='current'){updateButton.disabled=false;updateButton.textContent='最新版';setTimeout(()=>{if(updateButton.dataset.ready!=='1')updateButton.textContent='更新を確認';},3000);}
+    else if(status.status==='error'){updateButton.disabled=false;updateButton.textContent='更新を確認';toast(status.message||'更新を確認できませんでした。');}
+  });
+}
 // Manually entered keys stay only in memory. The desktop config key remains in
 // the main process and is never returned to this page.
 $('applySettings').onclick=()=>{const model=$('apiModel').value.trim();if(!/^[a-zA-Z0-9_.:/-]{1,120}$/.test(model)){toast('利用するモデル名を入力してください。');return;}settings={provider:$('apiProvider').value,model,key:$('apiKey').value.trim(),configured:false};$('apiKey').value='';$('settings').close();toast('AI接続を設定しました。キーはこのアプリを閉じると消去されます。');};
@@ -171,9 +184,9 @@ async function prepareFonts(selectInitial=false){
     if(!initial){$('fontSetup').hidden=false;invalid=true;for(const id of ['copy','png','svg'])$(id).disabled=true;return;}
     state.font=initial;
   }
-  for(const id of ['euclid','euclid-symbol','euclid-symbol-bold','times','fallback'])if(fontCatalog.has(id))try{await ensureFont(id);}catch{}
+  for(const id of ['ceol','euclid','euclid-symbol','euclid-symbol-bold','times','fallback'])if(fontCatalog.has(id))try{await ensureFont(id);}catch{}
   $('fontSetup').hidden=true;
-  $('fontHint').textContent=fonts.has('euclid-symbol')?'記号：Euclid Symbol Regular。個別指定を優先します。':fonts.has('euclid-symbol-bold')?'記号：Euclid Symbol Regularを優先し、現在はBoldで代替します。':'記号用にEuclid Symbol Regularを追加できます。';
+  $('fontHint').textContent=fonts.has('euclid-symbol')?'ギリシャ文字・記号：Euclid Symbol Regular／関数名：Ceol Regular。個別指定を優先します。':fonts.has('euclid-symbol-bold')?'ギリシャ文字・記号はRegularを優先し、現在はEuclid Symbol Boldで代替します。':'ギリシャ文字・記号用にEuclid Symbol Regularを追加できます。';
   syncControls();render();
 }
 async function init(){
