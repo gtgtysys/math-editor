@@ -85,10 +85,10 @@ export function layout(tree,size,fontFor,edits={},layoutVersion=2){
   function kern(left,right,s,fontRole){if(!left||!right)return 0;const a=edits[left.id]?.text??left.value,b=edits[right.id]?.text??right.value;if(!a||!b)return 0;const f=fontFor(a.at(-1),edits[left.id]?.font,fontRole);if(f!==fontFor(b[0],edits[right.id]?.font,fontRole))return 0;return f.getKerningValue(f.charToGlyph(a.at(-1)),f.charToGlyph(b[0]))*s/f.unitsPerEm;}
   function glyph(n,s,value=n.value,fontRole){
     const edit=edits[n.id]||{},text=edit.text??value;
-    let x=0,paths=[],a=0,d=0,inkLeft=0,inkRight=0;
-    for(const c of text){const font=fontFor(c,edit.font,fontRole),g=font.charToGlyph(c),p=g.getPath(x,0,s),bb=p.getBoundingBox();paths.push(p.toPathData(4));a=Math.max(a,-bb.y1);d=Math.max(d,bb.y2);inkLeft=Math.min(inkLeft,bb.x1);inkRight=Math.max(inkRight,bb.x2);x+=(g.advanceWidth||font.unitsPerEm*.5)*s/font.unitsPerEm;}
+    let x=0,paths=[],a=0,d=0,inkLeft=0,inkRight=0;const fontNames=new Set();
+    for(const c of text){const font=fontFor(c,edit.font,fontRole),g=font.charToGlyph(c),p=g.getPath(x,0,s),bb=p.getBoundingBox(),names=font.names||{},fontName=names.fullName?.en||Object.values(names.fullName||{})[0]||names.fontFamily?.en||Object.values(names.fontFamily||{})[0];if(fontName)fontNames.add(fontName);paths.push(p.toPathData(4));a=Math.max(a,-bb.y1);d=Math.max(d,bb.y2);inkLeft=Math.min(inkLeft,bb.x1);inkRight=Math.max(inkRight,bb.x2);x+=(g.advanceWidth||font.unitsPerEm*.5)*s/font.unitsPerEm;}
     const w=Math.max(x,s*.1);
-    return box(w,a,d,[{type:'glyph',id:n.id,text,x:0,y:0,w,inkLeft,inkRight,a,d,path:paths.join(' '),color:edit.color,sourceStart:n.start,sourceEnd:n.end}]);
+    return box(w,a,d,[{type:'glyph',id:n.id,text,x:0,y:0,w,inkLeft,inkRight,a,d,path:paths.join(' '),fontNames:[...fontNames],color:edit.color,sourceStart:n.start,sourceEnd:n.end}]);
   }
   const line=(id,x,y,w,thickness)=>({type:'line',id,x,y,w,h:thickness});
   function lay(n,s,style=0,fontRole){const b=layBody(n,s,style,fontRole);for(const g of b.items)if(g.id===n.id&&g.sourceStart===undefined){g.sourceStart=n.start;g.sourceEnd=n.end;}return b;}

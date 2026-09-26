@@ -14,16 +14,43 @@ export function fontName(buffer,fallback){
     return names.sort((a,b)=>b.score-a.score)[0]?.value.replace(/[\x00-\x1f]/g,'')||fallback;
   }catch{return fallback;}
 }
+export function extractTtcFaces(buffer){
+  if(buffer.toString('ascii',0,4)!=='ttcf')return [buffer];
+  const count=buffer.readUInt32BE(8),faces=[];
+  if(!count||count>64||12+count*4>buffer.length)throw Error('壊れたTTCファイルです。');
+  for(let faceIndex=0;faceIndex<count;faceIndex++){
+    const faceOffset=buffer.readUInt32BE(12+faceIndex*4);
+    if(faceOffset+12>buffer.length)continue;
+    const tableCount=buffer.readUInt16BE(faceOffset+4),directorySize=12+tableCount*16;
+    if(!tableCount||faceOffset+directorySize>buffer.length)continue;
+    const tables=[];let outputSize=directorySize;
+    for(let i=0;i<tableCount;i++){
+      const record=faceOffset+12+i*16,offset=buffer.readUInt32BE(record+8),length=buffer.readUInt32BE(record+12);
+      if(offset+length>buffer.length)throw Error('壊れたTTCテーブルです。');
+      tables.push({record,offset,length,outputOffset:outputSize});outputSize+=(length+3)&~3;
+    }
+    const face=Buffer.alloc(outputSize);buffer.copy(face,0,faceOffset,faceOffset+12);
+    for(let i=0;i<tables.length;i++){
+      const table=tables[i],record=12+i*16;
+      buffer.copy(face,record,table.record,table.record+8);
+      face.writeUInt32BE(table.outputOffset,record+8);face.writeUInt32BE(table.length,record+12);
+      buffer.copy(face,table.outputOffset,table.offset,table.offset+table.length);
+    }
+    faces.push(face);
+  }
+  if(!faces.length)throw Error('TTCに利用できる書体がありません。');
+  return faces;
+}
 export async function scanFonts(directories){
   const catalog=new Map();
   for(const directory of directories){let files;try{files=await readdir(directory);}catch{continue;}
-    for(const file of files){if(!/\.(ttf|otf)$/i.test(file))continue;const full=path.join(directory,file);try{const info=await stat(full);if(!info.isFile()||info.size>25e6)continue;const bytes=await readFile(full);if(!['OTTO','true'].includes(bytes.toString('ascii',0,4))&&bytes.readUInt32BE(0)!==0x10000)continue;const label=fontName(bytes,path.parse(file).name),normalized=label.toLowerCase().replace(/[\s_-]/g,'');let id='system:'+createHash('sha256').update(label.toLowerCase()).digest('hex').slice(0,24);
+    for(const file of files){if(!/\.(ttf|otf|ttc)$/i.test(file))continue;const full=path.join(directory,file);try{const info=await stat(full);if(!info.isFile()||info.size>40e6)continue;const source=await readFile(full),faces=source.toString('ascii',0,4)==='ttcf'?extractTtcFaces(source):[source];for(let faceIndex=0;faceIndex<faces.length;faceIndex++){const bytes=faces[faceIndex];if(!['OTTO','true'].includes(bytes.toString('ascii',0,4))&&bytes.readUInt32BE(0)!==0x10000)continue;const label=fontName(bytes,path.parse(file).name),normalized=label.normalize('NFKC').toLowerCase().replace(/[\s_-]/g,'');let id='system:'+createHash('sha256').update(label.toLowerCase()).digest('hex').slice(0,24);
       if(normalized==='timesnewroman'||file.toLowerCase()==='times.ttf')id='times';
       if(['euclid','euclidregular'].includes(normalized))id='euclid';
       if(['euclidsymbol','euclidsymbolregular'].includes(normalized))id='euclid-symbol';
       if(normalized==='euclidsymbolbold')id='euclid-symbol-bold';
       if(normalized==='ceolitalic')id='ceol-italic';if(['ceol','ceolregular'].includes(normalized))id='ceol';if(normalized==='ceolbold')id='ceol-bold';if(/kozminpro.*regular/i.test(normalized))id='fallback';
-      if(!catalog.has(id))catalog.set(id,{id,label,path:full});
+      if(!catalog.has(id))catalog.set(id,{id,label,path:full,faceIndex:faces.length>1?faceIndex:undefined});}
     }catch{/* An unreadable font does not prevent startup. */}}
   }
   return catalog;
@@ -34,4 +61,4 @@ export function installedFonts(){return cached??=scanFonts([
   ...(process.env.LOCALAPPDATA?[path.join(process.env.LOCALAPPDATA,'Microsoft','Windows','Fonts')]:[]),
   fileURLToPath(new URL('./dist/fonts/',import.meta.url)),
 ]);}
-export async function readInstalledFont(id){const entry=(await installedFonts()).get(id);if(!entry)throw Error('このフォントはPCにありません。TTF／OTFを追加してください。');return readFile(entry.path);}
+export async function readInstalledFont(id){const entry=(await installedFonts()).get(id);if(!entry)throw Error('このフォントはPCにありません。TTF／OTF／TTCを追加してください。');const bytes=await readFile(entry.path);return entry.faceIndex===undefined?bytes:extractTtcFaces(bytes)[entry.faceIndex];}

@@ -1,5 +1,17 @@
 export const OFFICE_COLORS=[['#C00000','濃い赤'],['#FF0000','赤'],['#FFC000','オレンジ'],['#FFFF00','黄'],['#92D050','薄い緑'],['#00B050','緑'],['#00B0F0','水色'],['#0070C0','青'],['#002060','濃い青'],['#7030A0','紫']];
 export const NEUTRALS=[['#000000','黒'],['#FFFFFF','白'],['#404040','濃い灰色'],['#808080','灰色'],['#BFBFBF','薄い灰色']];
+export function fontPriority(label){
+  const name=String(label||'').normalize('NFKC').toLowerCase().replace(/[\s_-]/g,'');
+  if(name==='ceol'||name==='ceolregular')return 0;
+  if(name==='ceolitalic')return 1;
+  if(name==='ceolbold')return 2;
+  if(name.startsWith('ceol'))return 3;
+  if(name==='euclid'||name==='euclidregular')return 10;
+  if(name==='mspmincho'||name==='msp明朝')return 20;
+  if(/kozmin.*regular/.test(name)||name.includes('小塚明朝'))return 30;
+  if(name==='mspgothic'||name==='mspゴシック')return 40;
+  return 100;
+}
 export const isGreekLetter=c=>/^[\u0391-\u03D6]$/.test(c);
 export const isMathSymbol=c=>isGreekLetter(c)||/^[+\-−=<>±∓×÷·*()[\]{}|,;:!∑∏∫∮√∞≤≥≠≈≡∈∉⊂∪∩→←⇒∂∇∀∃…⋯′]$/.test(c);
 export function transformSelection(source,start,end,kind){
