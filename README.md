@@ -1,11 +1,14 @@
 # Ceol Formula Studio
 
-PowerPoint向けのWindowsデスクトップ数式エディタです。ブラウザ版の公開は終了し、デスクトップ版を配布しています。
+PowerPoint向けのWindowsデスクトップ数式エディタです。
 
-[Windows版 v1.1.0をダウンロード](https://github.com/gtgtysys/math-editor/releases/download/v1.1.0/Ceol-Formula-Studio-1.1.0-portable.exe)
+## [⬇ Windows版 v1.2.1 インストーラーをダウンロード](https://github.com/gtgtysys/math-editor/releases/download/v1.2.1/Ceol-Formula-Studio-Setup-1.2.1.exe)
 
-Windows 10/11対応のポータブル版です。Node.jsやURL入力は不要です。フォントとAPIキーは同梱していません。
+Windows 10/11対応です。Node.js、ブラウザ、ローカルサーバーは必要ありません。
 
+[更新内容・ソースコード・その他の配布ファイルを見る](https://github.com/gtgtysys/math-editor/releases/latest)
+
+フォントとAPIキーは同梱していません。利用するフォントはPCへインストールしてください。
 ## 主な機能
 
 - 分数、平方根、上下付き、総和、積分、行列などの数式
@@ -17,21 +20,21 @@ Windows 10/11対応のポータブル版です。Node.jsやURL入力は不要で
 
 ## 使い方
 
-1. EXEをダウンロードして任意のフォルダへ置きます。
-2. ダブルクリックして起動します。
+1. インストーラーをダウンロードして起動します。
+2. 画面の案内に従ってインストールし、デスクトップまたはスタートメニューのアイコンから起動します。
 3. 「画像をコピー」でPowerPointへ貼り付けます。
 4. PowerPoint上の画像をコピーし、「PPTから貼り付け」で再編集します。
 
 ## 全体設定の初期値
 
-文字はCeol Italic、数式記号はEuclid Symbol Regular、サイズは28 pt、文字色は黒、太字はオフ、背景は透過、余白は12 px、出力サイズは1/3、コピー形式はベクター、PNG解像度は3×です。文字を選択して変更した設定は、その文字だけに適用されます。
+本文はCeol Italic、関数名はCeol Regular、ギリシャ文字と数式記号はEuclid Symbol Regular、サイズは22 pt、文字色は白です。編集キャンバスは#000034、書き出す画像は透過、出力サイズは等倍、コピー形式はベクターです。
 
 ## API設定
 
 EXEと同じ場所に次の構成で置きます。
 
 ```text
-Ceol-Formula-Studio-1.1.0-portable.exe
+Ceol Formula Studio.exe
 config/
   api-settings.json
 ```
@@ -50,6 +53,6 @@ APIキーを含む実ファイルはGitHubへ公開しないでください。
 
 ## ソースコード
 
-[デスクトップ版ソースZIP](https://github.com/gtgtysys/math-editor/releases/download/v1.1.0/Ceol-Formula-Studio-1.1.0-source.zip)
+[v1.2.1 ソースZIP](https://github.com/gtgtysys/math-editor/releases/download/v1.2.1/Ceol-Formula-Studio-1.2.1-source.zip)
 
 フォントファイルは配布物とソースに含めていません。利用するPCへ必要なフォントを導入してください。
