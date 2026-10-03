@@ -45,7 +45,11 @@ export function parse(source,layoutVersion=2) {
       }
       if(['sum','prod','int','oint'].includes(cmd))return node('large',{value:{sum:'∑',prod:'∏',int:'∫',oint:'∮'}[cmd]});
       if(['overline','bar','hat','vec'].includes(cmd))return node('accent',{body:argument(),kind:cmd});
-      if(cmd==='left'||cmd==='right'){while(source[i]===' ')i++;if(source[i]==='.') {i++;return node('space',{factor:0});}return atom();}
+      if(cmd==='left'){
+        const left=delimiter('左'),body=sequence('\\right'),right=delimiter('右');
+        return node('delimited',{left,right,body});
+      }
+      if(cmd==='right')throw Error('\\right に対応する \\left がありません。');
       if(cmd==='text'||cmd==='mathrm'||cmd==='operatorname'){
         while(source[i]===' ')i++;
         if(source[i++]!=='{')throw Error(`\\${cmd}には {文字} が必要です。`);
@@ -70,6 +74,23 @@ export function parse(source,layoutVersion=2) {
     }
     return node('char',{value:c==='-'?'−':c});
   }
+  function delimiter(side){
+    while(source[i]===' ')i++;
+    if(i>=source.length)throw Error(`\\${side}の区切り記号が必要です。`);
+    if(source[i]!=="\\"){
+      const value=source[i++];
+      if('()[]{}|.'.includes(value))return value;
+      throw Error(`\\${side}には ( ) [ ] \\{ \\} | または . を指定してください。`);
+    }
+    i++;
+    if(source[i]==='{'||source[i]==='}')return source[i++];
+    const match=source.slice(i).match(/^[a-zA-Z]+/);
+    if(!match)throw Error(`\\${side}の区切り記号が必要です。`);
+    i+=match[0].length;
+    const names={lbrace:'{',rbrace:'}',lbrack:'[',rbrack:']',langle:'⟨',rangle:'⟩',vert:'|',Vert:'‖',lvert:'|',rvert:'|',lVert:'‖',rVert:'‖'};
+    if(names[match[0]]!==undefined)return names[match[0]];
+    throw Error(`\\${match[0]} は区切り記号として未対応です。`);
+  }
   return sequence();
 }
 
@@ -79,7 +100,7 @@ const move=(b,x,y)=>b.items.map(g=>({...g,x:g.x+x,y:g.y+y}));
 const SPACING={ord:{op:3,bin:4,rel:5,inner:3},op:{ord:3,op:3,rel:5,inner:3},bin:{ord:4,op:4,open:4,inner:4},rel:{ord:5,op:5,open:5,inner:5},open:{},close:{op:3,bin:4,rel:5,inner:3},punct:{ord:3,op:3,rel:5,open:3,close:3,punct:3,inner:3},inner:{ord:3,op:3,bin:4,rel:5,open:3,punct:3,inner:3}};
 export function layout(tree,size,fontFor,edits={},layoutVersion=2){
   if(layoutVersion===1)return legacyLayout(tree,size,fontFor,edits);
-  function atomClass(n){if(n.atomClass)return n.atomClass;if(n.type==='scripts')return atomClass(n.base);if(n.type==='large')return 'op';if(n.type==='frac'||n.type==='matrix')return 'inner';if(n.type==='space')return null;if(n.type!=='char')return 'ord';const c=edits[n.id]?.text??n.value;if(/^[+−±∓×÷·*]$/.test(c))return 'bin';if(/^[=<>≤≥≠≈≡∈∉⊂→←⇒]$/.test(c))return 'rel';if(/^[([{]$/.test(c))return 'open';if(/^[)\]}]$/.test(c))return 'close';if(/^[,;:]$/.test(c))return 'punct';return 'ord';}
+  function atomClass(n){if(n.atomClass)return n.atomClass;if(n.type==='scripts')return atomClass(n.base);if(n.type==='large')return 'op';if(n.type==='frac'||n.type==='matrix'||n.type==='delimited')return 'inner';if(n.type==='space')return null;if(n.type!=='char')return 'ord';const c=edits[n.id]?.text??n.value;if(/^[+−±∓×÷·*]$/.test(c))return 'bin';if(/^[=<>≤≥≠≈≡∈∉⊂→←⇒]$/.test(c))return 'rel';if(/^[([{]$/.test(c))return 'open';if(/^[)\]}]$/.test(c))return 'close';if(/^[,;:]$/.test(c))return 'punct';return 'ord';}
   const xHeight=s=>{const f=fontFor('x');return f.charToGlyph('x').getBoundingBox().y2*s/f.unitsPerEm;};
   const axis=s=>{const f=fontFor('=');const b=f.charToGlyph('=').getBoundingBox();return (b.y1+b.y2)*.5*s/f.unitsPerEm;};
   function kern(left,right,s,fontRole){if(!left||!right)return 0;const a=edits[left.id]?.text??left.value,b=edits[right.id]?.text??right.value;if(!a||!b)return 0;const f=fontFor(a.at(-1),edits[left.id]?.font,fontRole);if(f!==fontFor(b[0],edits[right.id]?.font,fontRole))return 0;return f.getKerningValue(f.charToGlyph(a.at(-1)),f.charToGlyph(b[0]))*s/f.unitsPerEm;}
@@ -154,6 +175,20 @@ export function layout(tree,size,fontFor,edits={},layoutVersion=2){
       if(n.kind==='hat')item={type:'stroke',id:n.id,x:0,y:0,path:`M 0 ${y} L ${b.w/2} ${y-s*.15} L ${b.w} ${y}`,strokeWidth:s*.04,w:b.w,a:-y+s*.15,d:0};
       if(n.kind==='vec')item={type:'stroke',id:n.id,x:0,y:0,path:`M 0 ${y} H ${b.w} M ${b.w-s*.15} ${y-s*.09} L ${b.w} ${y} L ${b.w-s*.15} ${y+s*.09}`,strokeWidth:s*.04,w:b.w,a:-y+s*.1,d:0};
       return box(b.w,b.a+s*.32,b.d,[...b.items,item]);
+    }
+    if(n.type==='delimited'){
+      const b=lay(n.body,s,style),top=-b.a-s*.08,bottom=b.d+s*.08,height=Math.max(s*.9,bottom-top),width=Math.max(s*.16,Math.min(s*.42,height*.13)),gap=s*.08;
+      const path=(value,x)=>{
+        if(value==='.')return '';
+        if(value==='['||value===']'){const outer=value==='['?x:x+width,inner=value==='['?x+width:x;return `M ${outer} ${top} H ${inner} M ${outer} ${top} V ${bottom} M ${outer} ${bottom} H ${inner}`;}
+        if(value==='{'||value==='}'){const outer=value==='{'?x:x+width,inner=value==='{'?x+width:x,mid=(top+bottom)/2;return `M ${inner} ${top} C ${outer} ${top} ${outer} ${top+height*.14} ${outer} ${top+height*.25} C ${outer} ${mid-height*.08} ${inner} ${mid-height*.05} ${inner} ${mid} C ${inner} ${mid+height*.05} ${outer} ${mid+height*.08} ${outer} ${bottom-height*.25} C ${outer} ${bottom-height*.14} ${outer} ${bottom} ${inner} ${bottom}`;}
+        if(value==='|'||value==='‖'){const count=value==='‖'?2:1;return Array.from({length:count},(_,i)=>`M ${x+width*(.35+i*.35)} ${top} V ${bottom}`).join(' ');}
+        if(value==='⟨'||value==='⟩'){const a=value==='⟨'?x+width:x,bb=value==='⟨'?x:x+width;return `M ${a} ${top} L ${bb} ${(top+bottom)/2} L ${a} ${bottom}`;}
+        const outer=value==='('?x+width:x,inner=value==='('?x:x+width;return `M ${outer} ${top} C ${inner} ${top+height*.2} ${inner} ${bottom-height*.2} ${outer} ${bottom}`;
+      };
+      const leftW=n.left==='.'?0:width,rightW=n.right==='.'?0:width,w=leftW+rightW+b.w+gap*2,items=[...move(b,leftW+gap,0)];
+      for(const [value,x]of [[n.left,0],[n.right,leftW+gap+b.w+gap]]){const d=path(value,x);if(d)items.push({type:'stroke',id:n.id,x:0,y:0,path:d,strokeWidth:Math.max(1,s*.035),w:width,a:-top,d:bottom});}
+      return box(w,Math.max(b.a,-top),Math.max(b.d,bottom),items);
     }
     if(n.type==='matrix'){
       const rows=n.rows.map(r=>r.map(c=>lay(c,s))),cols=Math.max(...rows.map(r=>r.length)),widths=Array.from({length:cols},(_,i)=>Math.max(0,...rows.map(r=>r[i]?.w||0))),heights=rows.map(r=>({a:Math.max(...r.map(c=>c.a)),d:Math.max(...r.map(c=>c.d))})),h=heights.reduce((a,b)=>a+b.a+b.d,0)+(rows.length-1)*s*.35,margin=n.bracket==='matrix'?0:s*.35,w=widths.reduce((a,b)=>a+b,0)+(cols-1)*s*.6+margin*2;let y=-h/2-s*.2,items=[];

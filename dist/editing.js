@@ -17,6 +17,10 @@ export const isMathSymbol=c=>isGreekLetter(c)||/^[+\-−=<>±∓×÷·*()[\]{}|,
 export function transformSelection(source,start,end,kind){
   const chosen=source.slice(start,end);let text,caret;
   if(kind==='sqrt')text=`\\sqrt{${chosen||'x'}}`;
+  else if(kind==='delimited'){
+    text=`\\left(${chosen||'x'}\\right)`;
+    if(!chosen)caret=start+6;
+  }
   else if(kind==='sup'||kind==='sub'){
     // A selection becomes the script itself, just like text formatting in PPT.
     const before=source.slice(0,start),base=before.trim()?'':'{}';
