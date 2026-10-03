@@ -2,7 +2,7 @@
 
 PowerPoint向けのWindowsデスクトップ数式エディタです。
 
-## [⬇ Windows版 v1.2.1 インストーラーをダウンロード](https://github.com/gtgtysys/math-editor/releases/download/v1.2.1/Ceol-Formula-Studio-Setup-1.2.1.exe)
+## [⬇ Windows版 v1.2.2 インストーラーをダウンロード](https://github.com/gtgtysys/math-editor/releases/download/v1.2.2/Ceol-Formula-Studio-Setup-1.2.2.exe)
 
 Windows 10/11対応です。Node.js、ブラウザ、ローカルサーバーは必要ありません。
 
@@ -27,7 +27,7 @@ Windows 10/11対応です。Node.js、ブラウザ、ローカルサーバーは
 
 ## 全体設定の初期値
 
-本文はCeol Italic、関数名はCeol Regular、ギリシャ文字と数式記号はEuclid Symbol Regular、サイズは22 pt、文字色は白です。編集キャンバスは#000034、書き出す画像は透過、出力サイズは等倍、コピー形式はベクターです。
+本文はCeol Italic、関数名はCeol Regular、ギリシャ文字と数式記号はEuclid Symbol Regular、サイズは22 pt、文字色は白です。編集キャンバスは#003400、書き出す画像は透過、出力サイズは等倍、コピー形式はベクターです。
 
 ## API設定
 
@@ -53,6 +53,6 @@ APIキーを含む実ファイルはGitHubへ公開しないでください。
 
 ## ソースコード
 
-[v1.2.1 ソースZIP](https://github.com/gtgtysys/math-editor/releases/download/v1.2.1/Ceol-Formula-Studio-1.2.1-source.zip)
+[v1.2.2 ソースZIP](https://github.com/gtgtysys/math-editor/releases/download/v1.2.2/Ceol-Formula-Studio-1.2.2-source.zip)
 
 フォントファイルは配布物とソースに含めていません。利用するPCへ必要なフォントを導入してください。
